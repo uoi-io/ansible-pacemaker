@@ -6,7 +6,7 @@
     hosts={{ pacemaker_hosts | join('') }}
     username={{ pacemaker_user }}
     password={{ pacemaker_password }}
-    force=yes
+    force=no
   when: inventory_hostname == master
   tags:
     - pacemaker

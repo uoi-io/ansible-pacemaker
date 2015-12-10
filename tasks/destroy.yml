@@ -1,0 +1,17 @@
+---
+# file: roles/pacemaker/tasks/destroy.yml
+- name: Stopping Pacemaker cluster
+  pcs_cluster:
+    command=stop
+  when: inventory_hostname == master
+  tags:
+    - pacemaker
+    - pacemaker-destroy
+
+- name: Destroying Pacemaker cluster
+  pcs_cluster:
+    command=destroy
+  when: inventory_hostname == master
+  tags:
+    - pacemaker
+    - pacemaker-destroy

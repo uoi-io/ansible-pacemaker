@@ -28,7 +28,7 @@ def pcs_svc_running(svc):
 def main():
     module = AnsibleModule(
         argument_spec = dict(
-            command   = dict(required=True, choices=['auth', 'start', 'sync', 'destroy']),
+            command   = dict(required=True, choices=['auth', 'start', 'sync', 'destroy', 'stop']),
             hosts     = dict(required=False),
             force     = dict(default='no', required=False, choices=['yes', 'no']),
             username  = dict(required=False),
@@ -45,12 +45,12 @@ def main():
 
     # Check if Pacemaker is running.
     pacemaker_svc = pcs_svc_running('[p]acemakerd')
-    if pacemaker_svc is not True:
+    if pacemaker_svc is not True and module.params['command'] != 'stop' and module.params['command'] != 'destroy':
         module.fail_json(msg="pacemakerd is not running...")
 
     # Check if Corosync is running.
     corosync_svc = pcs_svc_running('[c]orosync')
-    if corosync_svc is not True:
+    if corosync_svc is not True and module.params['command'] != 'stop' and module.params['command'] != 'destroy':
         module.fail_json(msg="corosync is not running...")
 
     # Check if pcsd is running.
@@ -89,6 +89,14 @@ def main():
 
     if module.params['command'] == 'sync':
         cmd = 'pcs cluster %(command)s'
+        module.exit_json(changed=True)
+
+    if module.params['command'] == 'destroy':
+        cmd = 'pcs cluster %(command)s --all'
+        module.exit_json(changed=True)
+
+    if module.params['command'] == 'stop':
+        cmd = 'pcs cluster %(command)s --all'
         module.exit_json(changed=True)
 
     # Run command.
