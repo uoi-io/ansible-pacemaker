@@ -1,0 +1,10 @@
+---
+# vars file for pacemaker
+pacemaker_user: hacluster
+pacemaker_group: haclient
+pacemaker_uid: 189
+pacemaker_gid: 189
+pacemaker_ports:
+  - 2224
+  - 3121
+  - 21064

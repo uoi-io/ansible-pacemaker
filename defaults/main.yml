@@ -1,0 +1,12 @@
+---
+# file: roles/pacemaker/defaults/main.yml
+pacemaker_firewalld: true
+pacemaker_hosts: 
+  - pacemaker-1
+  - pacemaker-2
+  - pacemaker-3
+pacemaker_password: hacluster
+pacemaker_password_sha512: $6$rounds=100000$sxqqM9rY4NKIhXGw$AEEMlWhS6/84MzNfDe416/6v9nmhG6/215DUiUl6nhqK61rLHzKwzXdwdnqqyAzbE.dYUkXYcBQ/rOR2.XMDo.
+pacemaker_property_stonith: false
+pacemaker_property_quorum: ignore
+pacemaker_property_watchdog: false

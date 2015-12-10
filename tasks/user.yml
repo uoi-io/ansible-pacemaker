@@ -1,0 +1,21 @@
+---
+# file: roles/pacemaker/tasks/user.yml
+- name: Creating haclient group
+  group:
+    name={{ pacemaker_group }}
+    gid={{ pacemaker_gid }}
+    state=present
+  tags:
+    - pacemaker
+    - pacemaker-group
+
+- name: Creating hacluster user
+  user:
+    name={{ pacemaker_user }}
+    shell=/sbin/nologin
+    uid={{ pacemaker_uid }}
+    groups={{ pacemaker_group }}
+    password={{ pacemaker_password_sha512 }}
+  tags:
+    - pacemaker
+    - pacemaker-user

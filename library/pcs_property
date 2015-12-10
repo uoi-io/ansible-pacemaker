@@ -1,0 +1,105 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+# 2015 - Gaetan trellu (goldyfruit) - <gaetan.trellu@incloudus.com>
+# 2014 - Jonathan Araña Cruz (jonhattan) - <onhattan@faita.net>
+
+DOCUMENTATION = '''
+---
+module: pcs_property
+short_description: Manages I(pacemaker) cluster properties with pcs tool.
+options:
+  state:
+    required: false
+    default: present
+    choices: [ "absent", "present" ]
+  name:
+    required: true
+    description:
+      - Name of the property.
+  value:
+    required: true
+    description:
+      - Value of the property.
+'''
+
+def pcs_command_exists(cmd):
+    try:
+        os.stat(cmd)
+        return True
+    except:
+        return False
+
+def pcs_svc_running(svc):
+    try:
+        ps = subprocess.Popen(['ps', 'faux'], stdout=subprocess.PIPE)
+        grep = subprocess.Popen(['grep', svc, '-c'],
+                            stdin=ps.stdout,
+                            stdout=subprocess.PIPE)
+        ps.stdout.close()
+        output = grep.communicate()[0]
+        ps.wait()
+
+        if output == '1\n':
+            return True
+    except:
+        return False
+
+def main():
+    module = AnsibleModule(
+        argument_spec = dict(
+            state     = dict(default='present', choices=['present', 'absent']),
+            name      = dict(required=True),
+            value     = dict(required=True),
+        ),
+        supports_check_mode=True,
+    )
+
+    # Check if pcs command exists.
+    cmd = pcs_command_exists('/usr/sbin/pcs')
+    if cmd is not True:
+        module.fail_json(msg="Unable to find the 'pcs' command... Please install the package.")
+
+    # Check if Pacemaker is running.
+    pacemaker_svc = pcs_svc_running('[p]acemakerd')
+    if pacemaker_svc is not True:
+        module.fail_json(msg="pacemakerd is not running...")
+
+    # Check if Corosync is running.
+    corosync_svc = pcs_svc_running('[c]orosync')
+    if corosync_svc is not True:
+        module.fail_json(msg="corosync is not running...")
+
+    # Check if pcsd is running.
+    pcsd_svc = pcs_svc_running('[p]csd start')
+    if pcsd_svc is not True:
+        module.fail_json(msg="pcsd is not running...")
+
+    # Get current property value.
+    cmd = "pcs property list %(name)s | awk '/^ / { print $2}'"  % module.params
+    rc, out, err = module.run_command(cmd, use_unsafe_shell=True)
+    value = out.strip()
+
+    if module.params['state'] == 'absent':
+        if value != '':
+            changed = True
+            if not module.check_mode:
+                cmd = 'pcs property unset %(name)s' % module.params
+                module.run_command(cmd)
+        else:
+            changed = False
+        module.exit_json(changed=changed)
+    else:
+        if value != module.params['value']:
+            changed = True
+            if not module.check_mode:
+                cmd = 'pcs property set %(name)s=%(value)s' % module.params
+                module.run_command(cmd)
+        else:
+            changed = False
+        module.exit_json(changed=changed, prev="|%s|" % value,  msg="%(name)s=%(value)s" % module.params)
+
+# import module snippets
+from ansible.module_utils.basic import *
+if __name__ == '__main__':
+    main()

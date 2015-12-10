@@ -1,0 +1,32 @@
+---
+galaxy_info:
+  author: Gaetan Trellu (goldyfruit)
+  description: Install Pacemaker
+  company: InCloudUs
+  license: license (BSD)
+  min_ansible_version: 1.9
+  platforms:
+  - name: EL
+    versions:
+    - 6
+    - 7
+  - name: Fedora
+    versions:
+    - 20
+    - 21
+    - 22
+  - name: Ubuntu
+    versions:
+    - saucy
+    - trusty
+    - utopic
+    - vivid
+  - name: Debian
+    versions:
+    - jessie
+    - wheezy
+  categories:
+  - cloud
+  - clustering
+  - system
+dependencies: []

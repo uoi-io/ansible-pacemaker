@@ -1,0 +1,12 @@
+---
+# file: roles/pacemaker/tasks/main.yml
+- include: install.yml
+- include: user.yml
+- include: auth.yml
+- include: sync.yml
+- include: start.yml
+
+- include: firewall.yml
+  when: pacemaker_firewalld and pacemaker_firewalld == true
+
+- include: properties.yml

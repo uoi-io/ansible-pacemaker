@@ -1,0 +1,104 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+# 2015 - Gaetan trellu (goldyfruit) - <gaetan.trellu@incloudus.com>
+
+def pcs_command_exists(cmd):
+    try:
+        os.stat(cmd)
+        return True
+    except:
+        return False
+
+def pcs_svc_running(svc):
+    try:
+        ps = subprocess.Popen(['ps', 'faux'], stdout=subprocess.PIPE)
+        grep = subprocess.Popen(['grep', svc, '-c'],
+                            stdin=ps.stdout,
+                            stdout=subprocess.PIPE)
+        ps.stdout.close()
+        output = grep.communicate()[0]
+        ps.wait()
+
+        if output == '1\n':
+            return True
+    except:
+        return False
+
+def main():
+    module = AnsibleModule(
+        argument_spec = dict(
+            command   = dict(required=True, choices=['auth', 'start', 'sync', 'destroy']),
+            hosts     = dict(required=False),
+            force     = dict(default='no', required=False, choices=['yes', 'no']),
+            username  = dict(required=False),
+            all_nodes = dict(default='no', required=False),
+            password  = dict(required=False),
+        ),
+        supports_check_mode=True,
+    )
+
+    # Check if pcs command exists.
+    cmd = pcs_command_exists('/usr/sbin/pcs')
+    if cmd is not True:
+        module.fail_json(msg="Unable to find the 'pcs' command... Please install the package.")
+
+    # Check if Pacemaker is running.
+    pacemaker_svc = pcs_svc_running('[p]acemakerd')
+    if pacemaker_svc is not True:
+        module.fail_json(msg="pacemakerd is not running...")
+
+    # Check if Corosync is running.
+    corosync_svc = pcs_svc_running('[c]orosync')
+    if corosync_svc is not True:
+        module.fail_json(msg="corosync is not running...")
+
+    # Check if pcsd is running.
+    pcsd_svc = pcs_svc_running('[p]csd start')
+    if pcsd_svc is not True:
+        module.fail_json(msg="pcsd is not running...")
+
+    cmd = "pcs cluster status" % module.params
+    rc, out, err = module.run_command(cmd)
+    exists = (rc is 0)
+
+    if exists and module.params['force'] == 'no':
+        module.exit_json(changed=False, msg="Pacemaker cluster already exists.")
+    elif exists and module.params['force'] == 'yes':
+        module.exit_json(changed=True)
+    elif module.check_mode:
+        module.exit_json(changed=True)
+
+    if module.params['command'] == 'auth':
+        if not module.params.has_key('hosts'):
+            module.fail_json(msg="Missing required arguments: hosts")
+        if module.params.has_key('force'):
+            cmd = 'pcs cluster %(command)s %(hosts)s -u %(username)s -p %(password)s --force'
+            module.exit_json(changed=True)
+        else:
+            cmd = 'pcs cluster %(command)s %(hosts)s -u %(username)s -p %(password)s'
+            module.exit_json(changed=True)
+
+    if module.params['command'] == 'start':
+        if module.params['all_nodes'] == 'yes':
+            cmd = 'pcs cluster %(command)s --all'
+            module.exit_json(changed=True)
+        else:
+            cmd = 'pcs cluster %(command)s'
+            module.exit_json(changed=True)
+
+    if module.params['command'] == 'sync':
+        cmd = 'pcs cluster %(command)s'
+        module.exit_json(changed=True)
+
+    # Run command.
+    cmd = cmd % module.params
+    rc, out, err = module.run_command(cmd)
+    if rc is 1:
+        module.fail_json(msg="Execution failed.\nCommand: `%s`\nError: %s" % (cmd, err))
+
+    module.exit_json(changed=changed)
+
+# import module snippets
+from ansible.module_utils.basic import *
+main()

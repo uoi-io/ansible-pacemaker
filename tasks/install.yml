@@ -1,0 +1,46 @@
+---
+# file: roles/pacemaker/tasks/install.yml
+- name: Installing Pacemaker packages (Debian family)
+  apt:
+    name={{ item }}
+    state=latest
+    update_cache=yes
+  with_items:
+    - pacemaker
+    - pcs
+    - pcsd
+  when: ansible_os_family == 'Debian'
+  tags:
+    - pacemaker
+    - pacemaker-package
+
+- name: Installing Pacemaker packages (RedHat family)
+  yum:
+    name={{ item }}
+    state=latest
+    update_cache=yes
+  with_items:
+    - pacemaker
+    - pcs
+  when: ansible_os_family == 'RedHat'
+  tags:
+    - pacemaker
+    - pacemaker-package
+
+- name: Enabling Pacemaker service
+  service:
+    name=pacemaker
+    state=started
+    enabled=yes
+  tags:
+    - pacemaker
+    - pacemaker-service
+
+- name: Enabling and starting pcsd service
+  service:
+    name=pcsd
+    state=started
+    enabled=yes
+  tags:
+    - pacemaker
+    - pacemaker-service

@@ -1,0 +1,13 @@
+---
+# file: roles/pacemaker/tasks/auth.yml
+- name: Authenticating to pcsd daemon
+  pcs_cluster:
+    command=auth
+    hosts={{ pacemaker_hosts | join('') }}
+    username={{ pacemaker_user }}
+    password={{ pacemaker_password }}
+    force=yes
+  when: inventory_hostname == master
+  tags:
+    - pacemaker
+    - pacemaker-auth

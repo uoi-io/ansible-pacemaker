@@ -1,0 +1,28 @@
+---
+# file: roles/pacemaker/tasks/properties.yml
+- name: Enabling/Disabling stonith
+  pcs_property:
+    name=stonith-enabled
+    value={{ pacemaker_property_stonith | lower }}
+  when: inventory_hostname == master
+  tags:
+    - pacemaker
+    - pacemaker-properties
+
+- name: Enabling/Disabling no-quorum-policy
+  pcs_property:
+    name=no-quorum-policy
+    value={{ pacemaker_property_quorum | lower }}
+  when: inventory_hostname == master
+  tags:
+    - pacemaker
+    - pacemaker-properties
+
+- name: Enabling/Disabling have-watchdog
+  pcs_property:
+    name=have-watchdog
+    value={{ pacemaker_property_watchdog | lower }}
+  when: inventory_hostname == master
+  tags:
+    - pacemaker
+    - pacemaker-properties
