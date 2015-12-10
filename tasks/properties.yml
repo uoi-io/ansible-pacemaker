@@ -26,3 +26,12 @@
   tags:
     - pacemaker
     - pacemaker-properties
+
+- name: Enabling/Disabling symmetric-cluster
+  pcs_property:
+    name=symmetric-cluster
+    value={{ pacemaker_symmetric_cluster | lower }}
+  when: inventory_hostname == master
+  tags:
+    - pacemaker
+    - pacemaker-properties
