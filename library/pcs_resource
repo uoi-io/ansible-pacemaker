@@ -30,6 +30,28 @@ options:
     description: list of hashes of operations. Used in «create» command.
 '''
 
+def pcs_command_exists(cmd):
+    try:
+        os.stat(cmd)
+        return True
+    except:
+        return False
+
+def pcs_svc_running(svc):
+    try:
+        ps = subprocess.Popen(['ps', 'faux'], stdout=subprocess.PIPE)
+        grep = subprocess.Popen(['grep', svc, '-c'],
+                            stdin=ps.stdout,
+                            stdout=subprocess.PIPE)
+        ps.stdout.close()
+        output = grep.communicate()[0]
+        ps.wait()
+
+        if output == '1\n':
+            return True
+    except:
+        return False
+
 def main():
     module = AnsibleModule(
         argument_spec   = dict(
@@ -38,12 +60,30 @@ def main():
             type       = dict(required=False),
             options    = dict(required=False),
             operations = dict(required=False),
+            clone      = dict(required=False),
         ),
         supports_check_mode=True,
     )
 
-    # TODO check pcs command is available.
-    # TODO check pacemaker/corosync is running.
+    # Check if pcs command exists.
+    cmd = pcs_command_exists('/usr/sbin/pcs')
+    if cmd is not True:
+        module.fail_json(msg="Unable to find the 'pcs' command... Please install the package.")
+
+    # Check if Pacemaker is running.
+    pacemaker_svc = pcs_svc_running('[p]acemakerd')
+    if pacemaker_svc is not True and module.params['command'] != 'stop' and module.params['command'] != 'destroy':
+        module.fail_json(msg="pacemakerd is not running...")
+
+    # Check if Corosync is running.
+    corosync_svc = pcs_svc_running('[c]orosync')
+    if corosync_svc is not True and module.params['command'] != 'stop' and module.params['command'] != 'destroy':
+        module.fail_json(msg="corosync is not running...")
+
+    # Check if pcsd is running.
+    pcsd_svc = pcs_svc_running('[p]csd start')
+    if pcsd_svc is not True:
+        module.fail_json(msg="pcsd is not running...")
 
     # Check if resource already exists.
     cmd = "pcs resource show %(name)s"  % module.params
@@ -58,9 +98,9 @@ def main():
     # Validate and process command specific params.
     if module.params['command'] == 'create':
         if not module.params.has_key('type'):
-            module.fail_json(msg="missing required arguments: type.")
+            module.fail_json(msg="Missing required arguments: type.")
         if not module.params.has_key('options'):
-            module.fail_json(msg="missing required arguments: options.")
+            module.fail_json(msg="Missing required arguments: options.")
         # Command template.
         cmd = 'pcs resource %(command)s %(resource_id)s %(type)s %(options)s'
         # Process operations.
@@ -71,6 +111,9 @@ def main():
                 op['options'] = ' '.join(['%s="%s"' % (key, value) for (key, value) in op['options'].items()])
                 operations.append('op %(action)s %(options)s' % op)
             module.params['operations'] = ' '.join(operations)
+        if module.params['clone'] == 'yes':
+            cmd += ' --clone'
+            changed=True
 
     elif module.params['command'] == 'master':
         if not module.params.has_key('options'):
@@ -96,4 +139,3 @@ def main():
 from ansible.module_utils.basic import *
 if __name__ == '__main__':
     main()
-
