@@ -116,7 +116,7 @@ def main():
             module.params['operations'] = ' '.join(operations)
         if module.params['clone'] == 'yes':
             cmd += ' --clone'
-            changed=True
+        changed=True
 
     elif module.params['command'] == 'master':
         if not module.params.has_key('options'):
