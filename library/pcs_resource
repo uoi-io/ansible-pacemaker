@@ -18,16 +18,19 @@ options:
     description: Id of the resource.
   type:
     required: true
-    description: type of resource. Used in «create» command.
+    description: type of resource. Used in "create" command.
   ms_name:
     required: true
-    description: name of the resource. Used in «master» command.
+    description: name of the resource. Used in "master" command.
   options:
     required: false
     description: hash of resource options.
   operations:
     required: false
-    description: list of hashes of operations. Used in «create» command.
+    description: list of hashes of operations. Used in "create" command.
+  clone:
+    required: false
+    description: create a pacemaker clone resource. Used in "create" command.
 '''
 
 def pcs_command_exists(cmd):
@@ -60,7 +63,7 @@ def main():
             type       = dict(required=False),
             options    = dict(required=False),
             operations = dict(required=False),
-            clone      = dict(required=False),
+            clone      = dict(default='no',required=False),
         ),
         supports_check_mode=True,
     )
