@@ -65,39 +65,39 @@ def main():
     if exists and module.params['force'] == 'no':
         module.exit_json(changed=False, msg="Pacemaker cluster already exists.")
     elif exists and module.params['force'] == 'yes':
-        module.exit_json(changed=True)
+        changed=True
     elif module.check_mode:
-        module.exit_json(changed=True)
+        changed=True
 
     if module.params['command'] == 'auth':
         if not module.params.has_key('hosts'):
             module.fail_json(msg="Missing required arguments: hosts")
         if module.params.has_key('force'):
             cmd = 'pcs cluster %(command)s %(hosts)s -u %(username)s -p %(password)s --force'
-            module.exit_json(changed=True)
+            changed=True
         else:
             cmd = 'pcs cluster %(command)s %(hosts)s -u %(username)s -p %(password)s'
-            module.exit_json(changed=True)
+            changed=True
 
     if module.params['command'] == 'start':
         if module.params['all_nodes'] == 'yes':
             cmd = 'pcs cluster %(command)s --all'
-            module.exit_json(changed=True)
+            changed=True
         else:
             cmd = 'pcs cluster %(command)s'
-            module.exit_json(changed=True)
+            changed=True
 
     if module.params['command'] == 'sync':
         cmd = 'pcs cluster %(command)s'
-        module.exit_json(changed=True)
+        changed=True
 
     if module.params['command'] == 'destroy':
         cmd = 'pcs cluster %(command)s --all'
-        module.exit_json(changed=True)
+        changed=True
 
     if module.params['command'] == 'stop':
         cmd = 'pcs cluster %(command)s --all'
-        module.exit_json(changed=True)
+        changed=True
 
     # Run command.
     cmd = cmd % module.params
