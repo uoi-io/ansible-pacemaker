@@ -27,7 +27,7 @@
     - pacemaker
     - pacemaker-package
 
-- name: Enabling Pacemaker service
+- name: Starting Pacemaker service
   service:
     name=pacemaker
     state=started
