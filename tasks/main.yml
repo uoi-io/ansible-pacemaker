@@ -5,6 +5,9 @@
 
 - include: install.yml
 - include: user.yml
+- pause:
+    prompt="Waiting few seconds..."
+    seconds=5
 - include: auth.yml
 - include: sync.yml
 - include: start.yml
