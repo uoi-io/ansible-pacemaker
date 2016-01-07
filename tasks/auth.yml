@@ -1,12 +1,23 @@
 ---
 # file: roles/pacemaker/tasks/auth.yml
+- name: Waiting until all nodes are online
+  shell: pcs status | grep OFFLINE || true
+  register: pcs_status
+  until: pcs_status.stdout.find('OFFLINE') == -1
+  retries: 10
+  delay: 3
+  when: inventory_hostname == master
+  tags:
+    - pacemaker
+    - pacemaker-auth
+
 - name: Authenticating to pcsd daemon
   pcs_cluster:
     command=auth
     hosts="{{ pacemaker_hosts | join(' ') }}"
     username={{ pacemaker_user }}
     password={{ pacemaker_password }}
-    force=no
+    force=yes
   when: inventory_hostname == master
   tags:
     - pacemaker
