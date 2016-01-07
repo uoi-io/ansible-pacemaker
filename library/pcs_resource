@@ -117,7 +117,7 @@ def main():
                 operations.append('op %(action)s %(options)s' % op)
             module.params['operations'] = ' '.join(operations)
         # Process meta.
-        if module.params.has_key('meta'):
+        if module.params.has_key('meta') and module.params['meta']:
             cmd += ' meta %(meta)s'
             meta = []
             for op in module.params['meta']:
