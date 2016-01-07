@@ -62,8 +62,10 @@ def main():
             name       = dict(required=True, aliases=['resource_id']),
             type       = dict(required=False),
             options    = dict(required=False),
+            meta       = dict(required=False),
             operations = dict(required=False),
             clone      = dict(default='no',required=False),
+            master     = dict(required=False),
         ),
         supports_check_mode=True,
     )
@@ -114,8 +116,18 @@ def main():
                 op['options'] = ' '.join(['%s="%s"' % (key, value) for (key, value) in op['options'].items()])
                 operations.append('op %(action)s %(options)s' % op)
             module.params['operations'] = ' '.join(operations)
+        # Process meta.
+        if module.params.has_key('meta'):
+            cmd += ' meta %(meta)s'
+            meta = []
+            for op in module.params['meta']:
+                op['options'] = ' '.join(['%s="%s"' % (key, value) for (key, value) in op['options'].items()])
+                meta.append('%(options)s' % op)
+            module.params['meta'] = ' '.join(meta)
         if module.params['clone'] == 'yes':
             cmd += ' --clone'
+        if module.params['master'] == 'true':
+            cmd += ' --master'
         changed=True
 
     elif module.params['command'] == 'master':
@@ -125,7 +137,7 @@ def main():
         cmd = 'pcs resource %(command)s %(ms_name)s %(resource_id)s %(options)s'
 
     # Process options.
-    if module.params.has_key('options'):
+    if module.params.has_key('options') and module.params['options']:
         options = module.params['options']
         options = ' '.join(['%s="%s"' % (key, value) for (key, value) in options.items()])
         module.params['options'] = options
