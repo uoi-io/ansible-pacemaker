@@ -4,12 +4,12 @@
   when: pacemaker_destroy_cluster is defined and pacemaker_destroy_cluster == true
 
 - include: install.yml
+- include: firewall.yml
+  when: pacemaker_firewalld is defined and pacemaker_firewalld == true
+
 - include: user.yml
 - include: auth.yml
 - include: sync.yml
 - include: start.yml
-
-- include: firewall.yml
-  when: pacemaker_firewalld and pacemaker_firewalld == true
 
 - include: properties.yml
