@@ -1,7 +1,7 @@
 ---
 # file: roles/pacemaker/tasks/main.yml
 - include: destroy.yml
-  when: pacemaker_destroy_cluster and pacemaker_destroy_cluster == true
+  when: pacemaker_destroy_cluster is defined and pacemaker_destroy_cluster == true
 
 - include: install.yml
 - include: user.yml
