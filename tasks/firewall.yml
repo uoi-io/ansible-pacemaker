@@ -1,7 +1,8 @@
 ---
 # file: roles/pacemaker/tasks/firewall.yml
 - name: Pacemaker/pcsd firewalld rules
-  firewalld: port={{ item }}/tcp
+  firewalld:
+    port={{ item }}
     permanent=true
     state=enabled
     immediate=true

@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-# 2015 - Gaetan trellu (goldyfruit) - <gaetan.trellu@incloudus.com>
+# 2016 - Gaetan trellu (goldyfruit) - <gaetan.trellu@incloudus.com>
 # 2014 - Jonathan Araña Cruz (jonhattan) - <onhattan@faita.net>
 
 DOCUMENTATION = '''
@@ -11,28 +11,49 @@ short_description: Manages I(pacemaker) cluster resources with pcs tool.
 options:
   command:
     required: true
-    description: Supported commands.
-    choices: [ "create", "master"]
+    choices: [ "create" ]
+    description:
+      - Supported commands.
   resource_id:
     required: true
-    description: Id of the resource.
+    description:
+      - Id of the resource.
   type:
     required: true
-    description: type of resource. Used in "create" command.
-  ms_name:
-    required: true
-    description: name of the resource. Used in "master" command.
+    description:
+      - Type of resource.
   options:
     required: false
-    description: hash of resource options.
+    description:
+      - Hash of resource options.
   operations:
     required: false
-    description: list of hashes of operations. Used in "create" command.
+    description:
+      - List of hashes of operations.
   clone:
     required: false
-    description: create a pacemaker clone resource. Used in "create" command.
+    description:
+      - Create a Pacemaker cloned resource.
+  clone_max:
+    required: false
+    description:
+      - How many copies of the resource to start.
+  disable:
+    required: false
+    description:
+      - Disable the resource right after the resource creation.
+  master:
+    required: false
+    description:
+      - Create a Pacemaker master resource.
+  force:
+    required: false
+    description:
+      - Force the Pacemaker resource creation.
 '''
 
+# pcs_command_exists checks if command exists
+# Example: pcs_command_exists('/usr/sbin/pcs')
 def pcs_command_exists(cmd):
     try:
         os.stat(cmd)
@@ -40,6 +61,8 @@ def pcs_command_exists(cmd):
     except:
         return False
 
+# pcs_svc_running checks if a process is running
+# Example: pcs_svc_running('[p]acemakerd')
 def pcs_svc_running(svc):
     try:
         ps = subprocess.Popen(['ps', 'faux'], stdout=subprocess.PIPE)
@@ -57,65 +80,79 @@ def pcs_svc_running(svc):
 
 def main():
     module = AnsibleModule(
-        argument_spec   = dict(
-            command    = dict(choices=['create', 'master']),
-            name       = dict(required=True, aliases=['resource_id']),
-            type       = dict(required=False),
-            options    = dict(required=False),
-            meta       = dict(required=False),
-            operations = dict(required=False),
-            clone      = dict(default='no',required=False),
-            master     = dict(required=False),
+        argument_spec  = dict(
+            command    = dict(required=True, default=None, choices=['create', 'cleanup', 'enable', 'disable']),
+            name       = dict(required=False, default=None, aliases=['resource_id']),
+            state      = dict(required=False, default='present', choices=['absent', 'present']),
+            type       = dict(required=False, default=None),
+            options    = dict(required=False, default=None),
+            operations = dict(required=False, default=None),
+            meta       = dict(required=False, default=None),
+            clone      = dict(required=False, default='false', type='bool'),
+            clone_max  = dict(required=False, default=None, type='int'),
+            disable    = dict(required=False, default='false', type='bool'),
+            master     = dict(required=False, default='false', type='bool'),
+            force       = dict(default='no', required=False, choices=['yes', 'no']),
         ),
         supports_check_mode=True,
     )
 
     # Check if pcs command exists.
-    cmd = pcs_command_exists('/usr/sbin/pcs')
-    if cmd is not True:
-        module.fail_json(msg="Unable to find the 'pcs' command... Please install the package.")
+    if pcs_command_exists('/usr/sbin/pcs') is not True:
+        module.fail_json(msg="Unable to find the 'pcs' command...")
 
     # Check if Pacemaker is running.
-    pacemaker_svc = pcs_svc_running('[p]acemakerd')
-    if pacemaker_svc is not True and module.params['command'] != 'stop' and module.params['command'] != 'destroy':
+    if pcs_svc_running('[p]acemakerd') is not True:
         module.fail_json(msg="pacemakerd is not running...")
 
     # Check if Corosync is running.
-    corosync_svc = pcs_svc_running('[c]orosync')
-    if corosync_svc is not True and module.params['command'] != 'stop' and module.params['command'] != 'destroy':
+    if pcs_svc_running('[c]orosync') is not True:
         module.fail_json(msg="corosync is not running...")
 
     # Check if pcsd is running.
-    pcsd_svc = pcs_svc_running('[p]csd start')
-    if pcsd_svc is not True:
+    if pcs_svc_running('[p]csd start') is not True:
         module.fail_json(msg="pcsd is not running...")
 
     # Check if resource already exists.
-    cmd = "pcs resource show %(name)s"  % module.params
+    cmd = "pcs resource show %(name)s" % module.params
     rc, out, err = module.run_command(cmd)
-    exists = (rc is 0)
+    exists = out.strip()
 
-    if exists:
-        module.exit_json(changed=False, msg="Resource already exists.")
-    elif module.check_mode:
+    if module.check_mode:
         module.exit_json(changed=True)
 
     # Validate and process command specific params.
     if module.params['command'] == 'create':
+        if exists:
+            if module.params['command'] != 'enable':
+                module.exit_json(changed=False, msg="Resource already exists...")
+
         if not module.params.has_key('type'):
-            module.fail_json(msg="Missing required arguments: type.")
-        if not module.params.has_key('options'):
-            module.fail_json(msg="Missing required arguments: options.")
+            module.fail_json(msg="Missing required arguments: type")
+        elif not module.params.has_key('options'):
+            module.fail_json(msg="Missing required arguments: options")
+
         # Command template.
         cmd = 'pcs resource %(command)s %(resource_id)s %(type)s %(options)s'
+
         # Process operations.
-        if module.params.has_key('operations'):
+        if module.params.has_key('operations') and module.params['operations']:
             cmd += ' %(operations)s'
             operations = []
             for op in module.params['operations']:
                 op['options'] = ' '.join(['%s="%s"' % (key, value) for (key, value) in op['options'].items()])
                 operations.append('op %(action)s %(options)s' % op)
             module.params['operations'] = ' '.join(operations)
+
+        if module.params['clone']:
+            if module.params['clone_max']:
+                cmd += ' --clone clone-max=%(clone_max)s'
+            else:
+                cmd += ' --clone'
+
+        if module.params['master']:
+                cmd += ' --master'
+
         # Process meta.
         if module.params.has_key('meta') and module.params['meta']:
             cmd += ' meta %(meta)s'
@@ -124,17 +161,23 @@ def main():
                 op['options'] = ' '.join(['%s="%s"' % (key, value) for (key, value) in op['options'].items()])
                 meta.append('%(options)s' % op)
             module.params['meta'] = ' '.join(meta)
-        if module.params['clone'] == 'yes':
-            cmd += ' --clone'
-        if module.params['master'] == 'true':
-            cmd += ' --master'
-        changed=True
 
-    elif module.params['command'] == 'master':
-        if not module.params.has_key('options'):
-            module.fail_json(msg="missing required arguments: options.")
-        # Command template.
-        cmd = 'pcs resource %(command)s %(ms_name)s %(resource_id)s %(options)s'
+        if module.params['disable']:
+            cmd += ' --disable'
+
+        if module.params['force']:
+            cmd += ' --force'
+
+        changed=True
+    elif module.params['command'] == 'cleanup':
+        cmd = 'pcs resource %(command)s'
+        changed=True
+    elif module.params['command'] == 'enable':
+        cmd = 'pcs resource %(command)s %(name)s'
+        changed=True
+    elif module.params['command'] == 'disable':
+        cmd = 'pcs resource %(command)s %(name)s'
+        changed=True
 
     # Process options.
     if module.params.has_key('options') and module.params['options']:

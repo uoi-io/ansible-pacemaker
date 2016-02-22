@@ -3,7 +3,7 @@
 - name: Syncing corosync.conf on each cluster nodes
   pcs_cluster:
     command=sync
-  when: inventory_hostname == master
+  run_once: true
   tags:
     - pacemaker
     - pacemaker-sync

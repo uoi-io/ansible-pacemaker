@@ -4,7 +4,7 @@
   pcs_cluster:
     command=start
     all_nodes=yes
-  when: inventory_hostname == master
+  run_once: true
   tags:
     - pacemaker
     - pacemaker-start

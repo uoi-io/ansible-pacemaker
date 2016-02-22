@@ -1,28 +1,46 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-# 2015 - Gaetan trellu (goldyfruit) - <gaetan.trellu@incloudus.com>
+# 2016 - Gaetan trellu (goldyfruit) - <gaetan.trellu@incloudus.com>
 # 2014 - Jonathan Araña Cruz (jonhattan) - <onhattan@faita.net>
 
 DOCUMENTATION = '''
 ---
 module: pcs_property
-short_description: Manages I(pacemaker) cluster properties with pcs tool.
+short_description: Manages Pacemaker cluster properties with pcs property command.
 options:
   state:
     required: false
     default: present
     choices: [ "absent", "present" ]
+  node:
+    required: false
+    default: no
+    choices: [ "yes", "no" ]
+    description:
+      - Add the --node argument to the pcs property set/unset command
+  force:
+    required: false
+    default: no
+    choices: [ "yes", "no" ]
+    description:
+      - Add the --force argument to the pcs property set/unset command
+  nodename:
+    required: false
+    description:
+      - Name of the node where the attribute should be applied
   name:
     required: true
     description:
-      - Name of the property.
+      - Name of the property/attribute
   value:
     required: true
     description:
-      - Value of the property.
+      - Value of the property/attribute
 '''
 
+# pcs_command_exists checks if command exists
+# Example: pcs_command_exists('/usr/sbin/pcs')
 def pcs_command_exists(cmd):
     try:
         os.stat(cmd)
@@ -30,6 +48,8 @@ def pcs_command_exists(cmd):
     except:
         return False
 
+# pcs_svc_running checks if a process is running
+# Example: pcs_svc_running('[p]acemakerd')
 def pcs_svc_running(svc):
     try:
         ps = subprocess.Popen(['ps', 'faux'], stdout=subprocess.PIPE)
@@ -49,6 +69,9 @@ def main():
     module = AnsibleModule(
         argument_spec = dict(
             state     = dict(default='present', choices=['present', 'absent']),
+            node      = dict(default='no', choices=['yes', 'no'], required=False),
+            force     = dict(default='no', choices=['yes', 'no'], required=False),
+            nodename  = dict(required=False),
             name      = dict(required=True),
             value     = dict(required=True),
         ),
@@ -56,27 +79,29 @@ def main():
     )
 
     # Check if pcs command exists.
-    cmd = pcs_command_exists('/usr/sbin/pcs')
-    if cmd is not True:
-        module.fail_json(msg="Unable to find the 'pcs' command... Please install the package.")
+    pcs_command_exists('/usr/sbin/pcs')
+    if pcs_command_exists('/usr/sbin/pcs') is not True:
+        module.fail_json(msg="Unable to find the pcs command...")
 
     # Check if Pacemaker is running.
-    pacemaker_svc = pcs_svc_running('[p]acemakerd')
-    if pacemaker_svc is not True:
-        module.fail_json(msg="pacemakerd is not running...")
+    if pcs_svc_running('[p]acemakerd') is not True:
+        module.fail_json(msg="pacemakerd is not running..")
 
     # Check if Corosync is running.
-    corosync_svc = pcs_svc_running('[c]orosync')
-    if corosync_svc is not True:
+    if pcs_svc_running('[c]orosync') is not True:
         module.fail_json(msg="corosync is not running...")
 
     # Check if pcsd is running.
-    pcsd_svc = pcs_svc_running('[p]csd start')
-    if pcsd_svc is not True:
+    if pcs_svc_running('[p]csd start') is not True:
         module.fail_json(msg="pcsd is not running...")
 
     # Get current property value.
-    cmd = "pcs property list %(name)s | awk '/^ / { print $2}'"  % module.params
+    if module.params['node'] == 'yes' and module.params['nodename']:
+        cmd = "pcs property list | grep %(nodename)s | awk '{ for(i=1; i<=NF; i++) { if($i == \"%(name)s=%(value)s\") { print $i } } }'" % module.params
+        node = True
+    else:
+        cmd = "pcs property show %(name)s | sed -n '/Node Attributes:/q;p' | awk '/^ / { print $2 }'" % module.params
+        node = False
     rc, out, err = module.run_command(cmd, use_unsafe_shell=True)
     value = out.strip()
 
@@ -84,22 +109,39 @@ def main():
         if value != '':
             changed = True
             if not module.check_mode:
-                cmd = 'pcs property unset %(name)s' % module.params
+                if module.params['node'] == 'yes' and module.params['nodename']:
+                    cmd = 'pcs property unset --node %(nodename)s %(name)s' % module.params
+                elif module.params['node'] == 'yes' and module.params['nodename'] and module.params['force'] == 'yes':
+                    cmd = 'pcs property unset --node %(nodename)s %(name)s --force' % module.params
+                elif module.params['force'] == 'yes':
+                    cmd = 'pcs property unset %(name)s --force' % module.params
+                else:
+                    cmd = 'pcs property unset %(name)s' % module.params
                 module.run_command(cmd)
         else:
             changed = False
         module.exit_json(changed=changed)
     else:
-        if value != module.params['value']:
+        if node:
+            property = ('%(name)s=%(value)s') % module.params
+        else:
+            property = module.params['value']
+        if value != property:
             changed = True
             if not module.check_mode:
-                cmd = 'pcs property set %(name)s=%(value)s' % module.params
+                if module.params['node'] == 'yes' and module.params['nodename']:
+                    cmd = 'pcs property set --node %(nodename)s %(name)s=%(value)s' % module.params
+                elif module.params['node'] == 'yes' and  module.params['node'] and module.params['force'] == 'yes':
+                    cmd = 'pcs property set --node %(name)s=%(value)s --force' % module.params
+                elif module.params['force'] == 'yes':
+                    cmd = 'pcs property set %(name)s=%(value)s --force' % module.params
+                else:
+                    cmd = 'pcs property set %(name)s=%(value)s' % module.params
                 module.run_command(cmd)
         else:
             changed = False
-        module.exit_json(changed=changed, prev="|%s|" % value,  msg="%(name)s=%(value)s" % module.params)
+        module.exit_json(changed=changed, prev="|%s|" % value, msg="%(name)s=%(value)s" % module.params)
 
-# import module snippets
 from ansible.module_utils.basic import *
 if __name__ == '__main__':
     main()

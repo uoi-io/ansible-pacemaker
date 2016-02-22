@@ -3,7 +3,7 @@
 - name: Stopping Pacemaker cluster
   pcs_cluster:
     command=stop
-  when: inventory_hostname == master
+  run_once: true
   tags:
     - pacemaker
     - pacemaker-destroy
@@ -11,7 +11,21 @@
 - name: Destroying Pacemaker cluster
   pcs_cluster:
     command=destroy
-  when: inventory_hostname == master
+  run_once: true
+  tags:
+    - pacemaker
+    - pacemaker-destroy
+
+- name: Purging tokens and configuration related to pcsd
+  file:
+    path=/var/lib/pcsd/{{ item }}
+    state=absent
+  with_fileglob:
+    - pcsd.cookiesecret
+    - pcsd.crt
+    - pcsd.key
+    - tokens
+    - pcs_users.conf
   tags:
     - pacemaker
     - pacemaker-destroy

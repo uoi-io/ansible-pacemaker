@@ -1,10 +1,10 @@
 ---
-# vars file for pacemaker
+# file: roles/pacemaker/vars/main.yml
 pacemaker_user: hacluster
 pacemaker_group: haclient
 pacemaker_uid: 189
 pacemaker_gid: 189
 pacemaker_ports:
-  - 2224
-  - 3121
-  - 21064
+  - 2224/tcp
+  - 3121/tcp
+  - 21064/tcp

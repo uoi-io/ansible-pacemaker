@@ -1,37 +1,12 @@
 ---
 # file: roles/pacemaker/tasks/properties.yml
-- name: Enabling/Disabling stonith
+- name: Enabling/Disabling Pacemaker properties
   pcs_property:
-    name=stonith-enabled
-    value={{ pacemaker_property_stonith | lower }}
-  when: inventory_hostname == master
-  tags:
-    - pacemaker
-    - pacemaker-properties
-
-- name: Enabling/Disabling no-quorum-policy
-  pcs_property:
-    name=no-quorum-policy
-    value={{ pacemaker_property_quorum | lower }}
-  when: inventory_hostname == master
-  tags:
-    - pacemaker
-    - pacemaker-properties
-
-- name: Enabling/Disabling have-watchdog
-  pcs_property:
-    name=have-watchdog
-    value={{ pacemaker_property_watchdog | lower }}
-  when: inventory_hostname == master
-  tags:
-    - pacemaker
-    - pacemaker-properties
-
-- name: Enabling/Disabling symmetric-cluster
-  pcs_property:
-    name=symmetric-cluster
-    value={{ pacemaker_symmetric_cluster | lower }}
-  when: inventory_hostname == master
+    name={{ item.name | lower }}
+    value={{ item.value | lower }}
+  with_items: 
+    - "{{ pacemaker_properties }}"
+  run_once: true
   tags:
     - pacemaker
     - pacemaker-properties

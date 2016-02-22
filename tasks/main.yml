@@ -11,5 +11,4 @@
 - include: auth.yml
 - include: sync.yml
 - include: start.yml
-
 - include: properties.yml

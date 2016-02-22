@@ -1,10 +1,16 @@
 ---
 galaxy_info:
   author: Gaetan Trellu (goldyfruit)
-  description: Install Pacemaker
+  description: Deploy a Pacemaker cluster and configure it via pcs command
   company: InCloudUs
-  license: license (BSD)
+  license: Apache
+
+  issue_tracker_url: https://github.com/uoi-io/ansible-pacemaker/issues
+
   min_ansible_version: 1.9
+
+  github_branch: master
+
   platforms:
   - name: EL
     versions:
@@ -26,8 +32,10 @@ galaxy_info:
     versions:
     - jessie
     - wheezy
-  categories:
+
+  galaxy_tags:
   - cloud
   - clustering
   - system
+
 dependencies: []
