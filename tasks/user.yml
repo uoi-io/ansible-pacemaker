@@ -5,6 +5,7 @@
     name={{ pacemaker_group }}
     gid={{ pacemaker_gid }}
     state=present
+    system=yes
   tags:
     - pacemaker
     - pacemaker-group
@@ -16,6 +17,7 @@
     uid={{ pacemaker_uid }}
     groups={{ pacemaker_group }}
     password={{ pacemaker_password_sha512 }}
+    system=yes
   tags:
     - pacemaker
     - pacemaker-user
