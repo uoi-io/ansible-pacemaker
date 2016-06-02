@@ -59,14 +59,11 @@ def main():
         module.fail_json(msg="corosync is not running...")
 
     # Check if pcsd is running.
-    if pcs_svc_running('[p]csd start') is not True:
+    if pcs_svc_running('[p]csd') is not True:
         module.fail_json(msg="pcsd is not running...")
 
     # Validate and process command specific params.
     if module.params['command'] == 'order' or module.params['command'] == 'location':
-        #if not module.params.has_key('options'):
-        #    module.fail_json(msg="Missing required arguments: options.")
-        # Command template.
         if module.params['force'] == 'yes':
             cmd = 'pcs constraint %(command)s %(name)s --force'
         else:
