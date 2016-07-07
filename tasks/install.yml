@@ -1,12 +1,26 @@
 ---
 # file: roles/pacemaker/tasks/install.yml
-- name: Installing Pacemaker packages (Debian family)
+- name: Installing Pacemaker package from backport (Debian Jessie)
+  apt:
+    name={{ item }}
+    state=latest
+    update_cache=yes
+    install_recommends=no
+    default_release=jessie-backports
+  with_items:
+    - pacemaker
+    - pacemaker-cli-utils
+  when: ansible_distribution_release == 'jessie'
+  tags:
+    - pacemaker
+    - pacemaker-package
+
+- name: Installing packages related to Pacemaker (Debian family)
   apt:
     name={{ item }}
     state=latest
     update_cache=yes
   with_items:
-    - pacemaker
     - pcs
   when: ansible_os_family == 'Debian'
   tags:
