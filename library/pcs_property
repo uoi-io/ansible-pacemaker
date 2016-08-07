@@ -60,7 +60,7 @@ def pcs_svc_running(svc):
         output = grep.communicate()[0]
         ps.wait()
 
-        if output == '1\n':
+        if output >= '1\n':
             return True
     except:
         return False
