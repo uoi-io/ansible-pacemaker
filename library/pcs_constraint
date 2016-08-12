@@ -41,7 +41,7 @@ def main():
             name       = dict(required=True),
             options    = dict(required=False),
             force      = dict(default='no', required=False, choices=['yes', 'no']),
-            operations = dict(required=False),
+            operations = dict(required=False, type='list'),
         ),
         supports_check_mode=True,
     )
